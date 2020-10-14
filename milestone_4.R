@@ -59,7 +59,7 @@ ui <- fluidPage(navbarPage(
   ),
   tabPanel("About",
              h3("This is an about me! My name is James Fitz-Henley"),
-           p("Here is the link to my repository: https://github.com/jamesfitzhenley/gov50-shiny-template."),
+           p("Here is the link to my repository: https://github.com/jamesfitzhenley/milestone_4."),
            p("The dataset used in this Shiny app comes from the Urban Institute. The data
   show census-tract level economic and demographic data for every Qualified
   Opportunity Zone in the United States. These data were last updated on Dec.
