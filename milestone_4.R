@@ -1,17 +1,3 @@
-# Questions:
-
-# 1. Some bars are missing for my outputs (Urban, for SC, GA, NC, TN). I have
-# tried to produce the values that these bars ought to show, and it works, so I
-# don't know what the issue is. Here is the code that puts out those values:
-    # ozlist %>%
-    #   filter(state %in% c("North Carolina", "South Carolina","Georgia", "Tennessee"),
-    #          urbsubrur == "Urban") %>% group_by(state) %>%
-    #   summarize(avg_UE = mean(unemprate, na.rm = TRUE, .groups = "keep"),
-    #             avg_pov = mean(PovertyRate, na.rm = TRUE, .groups = "keep"),
-    #             avg_own = mean(pctown, na.rm = TRUE, .groups = "keep")) %>%
-    #   View()
-
-# 2. How to insert actual text on About Me tab? Text to include is in comments already.
 #####
 library(shiny)
 library(tidyverse)
@@ -57,7 +43,6 @@ ui <- fluidPage(navbarPage(
       selectInput(
         inputId = "urb_choice",                 # a name for the value you choose here
         label = "Would you like to view urban, suburban, or rural Qualified Opportunity Zones?",
-                  # the name to display on the slider
         choices = urban                       # your list of choices to choose from
       ),
     ),
@@ -73,15 +58,16 @@ ui <- fluidPage(navbarPage(
     )
   ),
   tabPanel("About",
-             h3("This is an about me! My name is James Fitz-Henley"))
-  
-  # Here is the link to my repository: https://github.com/jamesfitzhenley/gov50-shiny-template.
-  # The dataset used in this Shiny app comes from the Urban Institute. The data
-  # show census-tract level economic and demographic data for every Qualified
-  # Opportunity Zone in the United States. These data were last updated on Dec.
-  # 14, 2018. Some of the included data are unemployment rates, homeownership
-  # rates, racial population breakdown, a flag for recent socioeconomic change,
-  # and designation as metro- or micropolitan statistical area.
+             h3("This is an about me! My name is James Fitz-Henley"),
+           p("Here is the link to my repository: https://github.com/jamesfitzhenley/gov50-shiny-template."),
+           p("The dataset used in this Shiny app comes from the Urban Institute. The data
+  show census-tract level economic and demographic data for every Qualified
+  Opportunity Zone in the United States. These data were last updated on Dec.
+  14, 2018. Some of the included data are unemployment rates, homeownership
+  rates, racial population breakdown, a flag for recent socioeconomic change,
+  and designation as metro- or micropolitan statistical area."),
+           p("The original data can be found at this site:
+             https://www.urban.org/policy-centers/metropolitan-housing-and-communities-policy-center/projects/opportunity-zones"))
   )
 )
 
@@ -114,7 +100,7 @@ server <- function(input, output, session) {
              state %in% c("Alabama", "Georgia", "South Carolina",
                           "North Carolina", "Mississippi", "Tennessee")) %>%
       group_by(state) %>% 
-      summarize(avg_UE = mean(unemprate, NA.RM = TRUE, .groups = "keep")) %>% 
+      summarize(avg_UE = mean(unemprate, na.rm = TRUE, .groups = "keep")) %>% 
       
       # this plot is just like normal!
       ggplot(aes(x = state, y = avg_UE)) +
@@ -136,7 +122,7 @@ server <- function(input, output, session) {
              state %in% c("Alabama", "Georgia", "South Carolina",
                           "North Carolina", "Mississippi", "Tennessee")) %>%
       group_by(state) %>% 
-      summarize(avg_pov = mean(PovertyRate, NA.RM = TRUE, .groups = "keep")) %>% 
+      summarize(avg_pov = mean(PovertyRate, na.rm = TRUE, .groups = "keep")) %>% 
       
       # this plot is just like normal!
       ggplot(aes(x = state, y = avg_pov)) +
@@ -158,7 +144,7 @@ server <- function(input, output, session) {
              state %in% c("Alabama", "Georgia", "South Carolina",
                           "North Carolina", "Mississippi", "Tennessee")) %>%
       group_by(state) %>% 
-      summarize(avg_own = mean(pctown, NA.RM = TRUE, .groups = "keep")) %>% 
+      summarize(avg_own = mean(pctown, na.rm = TRUE, .groups = "keep")) %>% 
       
       # this plot is just like normal!
       ggplot(aes(x = state, y = avg_own)) +
