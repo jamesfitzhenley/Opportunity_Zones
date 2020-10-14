@@ -135,8 +135,8 @@ server <- function(input, output, session) {
       theme_classic()
   })
   
-  # This plot shows average home ownership rates by state in opportunity zones
-  # filtered by user choice.
+  # This plot shows average home ownership rates by state in qualified
+  # opportunity zones filtered by user choice.
   
   output$urb_own_plot <- renderPlot({
     results() %>%
