@@ -24,8 +24,8 @@ urban <- c("Urban", "Suburban", "Rural")
 # census tracts on a continuous urbanization scale, rather than broad categories
 # like this.
 
-######################################################################################
-######################################################################################
+###############################################################################
+###############################################################################
 
 # Below is the User Interface. I meant to create a dropdown where you can choose
 # between Urban, Suburban, or Rural opportunity zones. The output (in server)
@@ -35,8 +35,53 @@ urban <- c("Urban", "Suburban", "Rural")
 ui <- fluidPage(theme = shinytheme("flatly"), navbarPage(
   "Economic Conditions in QOZs by Urbanness",
   
-  tabPanel(
-    "Main",
+  tabPanel("Context",
+    mainPanel(
+      h2("Background on Opportunity Zones"),
+      
+      h3("What are Opportunity Zones?"),
+      p("As part of the 2017 Tax Cuts and Jobs Act, the creation of Opportunity
+       Zones (OZs) is the most recent federal, bipartisan economic development
+       effort. OZs are census tracts chosen by governors (or territory
+       executives) to offer tax benefits to private investors. If investors hold
+       their capital in these designated census tracts for at least 5-10 years,
+       they are eligible for tax deferrals or exemptions. (2017 Tax Cuts and Jobs
+       Act)."),
+      
+      h3("Which census tracts are eligible to be designated as OZs?"),
+      p("A census tract can be eligible through any of the following three criteria:"),
+      p("I. Poverty rate equal to or greater than 20%;"),
+      p("II. Median family income less than or equal to 80% of the area’s median family income; or"),
+      p("III. Positioned contiguously with tracts that meet one of the above criteria, with median
+        family income no more than 125% of the median family income in tracts it is contiguous with"),
+      p("Meeting (I) or (II) classifies a tract as a low-income community.
+        Meeting (III) qualifies a tract under the contiguous tract exemption."),
+      p("Each state can designate 25% of their eligible tracts as OZs.
+        No more than 5% of designated tracts can qualify under the contiguous tract exemption."),
+      
+      h3("How are OZs chosen from eligible census tracts?"),
+      p("It varies across states. Within the states I investigated, North Carolina,
+        Tennessee, and Alabama provided a detailed explanation of the factors that
+        influenced their decision. The remaining states (South Carolina, Mississippi,
+        and Georgia) included little to no information about the decision process."),
+      p("Some common considerations that were mentioned included:"),
+        p("- A goal to designate at least one tract in each county"),
+        p("- Applications from developers, local governments, or community leaders"),
+        p("- Alignment with state priorities (specific industries, low-income housing, etc.)"),
+        p("- Proximity to supportive resources (college/universities, infrastructure, existing development plans)"),
+      p("South Carolina has seen the most vocal critique of the selection process, as
+        some tracts were chosen which had existing development projects or about which
+        they did not receive any applications."),
+      
+      br(),
+      p("Sources: North Carolina Department of Commerce, South Carolina Post & Courier,
+        Georgia Department of Community Affairs, Clarion Ledger,
+        Alabama Department of Economic and Development Affairs, Opportunity Alabama,
+        Tennessee Department of Economic and Community Development")
+      )
+    ),
+  
+  tabPanel("Main",
 
     # Here is a sidebar!
     
@@ -45,7 +90,7 @@ ui <- fluidPage(theme = shinytheme("flatly"), navbarPage(
         inputId = "urb_choice",                 # a name for the value you choose here
         label = "Would you like to view urban, suburban, or rural Qualified Opportunity Zones?",
         choices = urban                       # your list of choices to choose from
-      ),
+      )
     ),
     
     
@@ -58,6 +103,7 @@ ui <- fluidPage(theme = shinytheme("flatly"), navbarPage(
       plotOutput("urb_own_plot")
     )
   ),
+  
   tabPanel("About",
              h3("This is an about me! My name is James Fitz-Henley"),
            p("Here is the link to my repository: https://github.com/jamesfitzhenley/milestone_4."),
@@ -68,7 +114,8 @@ ui <- fluidPage(theme = shinytheme("flatly"), navbarPage(
   rates, racial population breakdown, a flag for recent socioeconomic change,
   and designation as metro- or micropolitan statistical area."),
            p("The original data can be found at this site:
-             https://www.urban.org/policy-centers/metropolitan-housing-and-communities-policy-center/projects/opportunity-zones"))
+             https://www.urban.org/policy-centers/metropolitan-housing-and-communities-policy-center/projects/opportunity-zones")
+          )
   )
 )
 

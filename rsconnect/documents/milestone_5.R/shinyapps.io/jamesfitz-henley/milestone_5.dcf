@@ -5,9 +5,8 @@ account: jamesfitz-henley
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 3085484
-bundleId: 3776595
+bundleId: 3776604
 url: https://jamesfitz-henley.shinyapps.io/milestone_5/
-when: 1603509439.60472
+when: 1603509845.66746
 asMultiple: FALSE
 asStatic: FALSE
-ignoredFiles: app.R|milestone_4.R|Gov50final_data/Designated_QOZs.12.14.18.xlsx|Gov50final_data/urbaninstitute_tractlevelozanalysis_update1242018.xlsx

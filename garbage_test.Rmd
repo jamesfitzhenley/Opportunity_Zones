@@ -1,0 +1,106 @@
+---
+title: "throwaway"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(rstanarm)
+library(skimr)
+library(readxl)
+```
+
+```{r}
+states <- c("Alabama", "North Carolina", "South Carolina",
+            "Georgia", "Tennessee", "Mississippi")
+
+ozlist <- read_excel("Gov50final_data/urbaninstitute_tractlevelozanalysis_update1242018.xlsx") %>% 
+  mutate(urbsubrur = case_when(Metro == 1 ~ "Urban",
+                               Micro == 1 ~ "Suburban",
+                               TRUE ~ "Rural"),
+         GEOID = geoid) %>% 
+  select(-Metro, -Micro, -NoCBSAType, - geoid) %>% 
+  mutate(as.numeric(Designated)) %>% 
+  mutate_if(is.numeric, ~ replace(., is.na(.), 0)) %>% 
+  mutate(as.factor(Designated)) %>% 
+  filter(state %in% states)
+
+desc_vars <- c("Poverty Rate", "Education", "Household Income", "White Population", "Unemployment")
+```
+
+```{r}
+log_model <- stan_glm(Designated ~ unemprate,
+                      # + PovertyRate +
+                      #   medhhincome2014_tract + HSorlower + pctwhitealone,
+               refresh = 0,
+               family = binomial(link = "logit"),
+               data = (ozlist %>%
+                         filter(state %in% states) %>%
+                         group_by(Designated, state)))
+new_obs <- ozlist %>% 
+      group_by(Designated, state) %>% 
+      summarize(unemprate = mean(unemprate, na.rm = TRUE, .groups = "keep"),
+                PovertyRate = mean(PovertyRate, na.rm = TRUE, .groups = "keep"),
+                medhhincome2014_tract = mean(medhhincome2014_tract, na.rm = TRUE, .groups = "keep"),
+                HSorlower = mean(HSorlower, na.rm = TRUE, .groups = "keep"),
+                pctwhitealone = mean(pctwhitealone, na.rm = TRUE, .groups = "keep")) %>%
+      mutate(as.logical(Designated)) %>% 
+      mutate(Designated = case_when(Designated == 1 ~ "Opportunity Zone",
+                                    T ~ "Other Tracts")) %>% 
+   select(-Designated) %>% 
+   unite(desstate, c(Designated, state), remove = F)
+    
+new_obs
+
+    desig_pred <- posterior_predict(log_model, newdata = new_obs) %>% 
+      as_tibble() %>% 
+      mutate_all(as.numeric)
+    
+colnames(desig_pred) = new_obs$desstate
+desig_pred %>% 
+  pivot_longer(cols = `Other Tracts_Alabama`:`Opportunity Zone_Tennessee`,
+               names_to = "tractstate",
+               values_to = "designated")
+```
+
+```{r}
+ozlist %>%
+      filter(state %in% states) %>%
+      group_by(Designated, state) %>%
+      stan_glm(unemprate ~ Designated,
+               refresh = 0,
+               family = binomial(),
+               data = .) %>% 
+  print(digits = 5)
+
+  t_prior <- student_t(df = 7, location = 0, scale = 2.5)
+  fit1 <- stan_glm(Designated ~ unemprate, data = ozlist, 
+                   family = binomial(link = "logit"), 
+                   prior = t_prior, prior_intercept = t_prior,  
+                   cores = 2, seed = 12345)
+
+# Look up how to interpret the log regression coefficients: https://stats.idre.ucla.edu/other/mult-pkg/faq/general/faq-how-do-i-interpret-odds-ratios-in-logistic-regression/  
+%>% 
+  as_tibble() %>% 
+  View()
+  
+  summarize(avg_UE = mean(unemprate, na.rm = TRUE, .groups = "keep"),
+                pov_rate = mean(PovertyRate, na.rm = TRUE, .groups = "keep"),
+                hh_inc = mean(medhhincome2014_tract, na.rm = TRUE, .groups = "keep"),
+                low_edu = mean(HSorlower, na.rm = TRUE, .groups = "keep"),
+                pct_white = mean(pctwhitealone, na.rm = TRUE, .groups = "keep")) %>%
+      mutate(as.logical(Designated)) %>% 
+      mutate(Designated = case_when(Designated == 1 ~ "Opportunity Zone",
+                                    T ~ "Other Tracts")) %>% 
+      
+      # this plot is just like normal!
+      ggplot(aes(x = Designated, y = avg_UE)) +
+      geom_col(fill = "skyblue4") +
+      facet_wrap(~ state) +
+      labs(title = paste0(input$desc_var_choice, " in Southern Qualified Opportunity Zones"),
+           y = "Average UE Rate",
+           caption = "Source: Urban Institute, 2014 and 2018 American Community Surveys") +
+      theme_classic()
+```
+
