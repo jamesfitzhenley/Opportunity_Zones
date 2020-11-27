@@ -38,18 +38,10 @@ log_model <- stan_glm(Designated ~ unemprate,
                data = (ozlist %>%
                          filter(state %in% states) %>%
                          group_by(Designated, state)))
-new_obs <- ozlist %>% 
-      group_by(Designated, state) %>% 
-      summarize(unemprate = mean(unemprate, na.rm = TRUE, .groups = "keep"),
-                PovertyRate = mean(PovertyRate, na.rm = TRUE, .groups = "keep"),
-                medhhincome2014_tract = mean(medhhincome2014_tract, na.rm = TRUE, .groups = "keep"),
-                HSorlower = mean(HSorlower, na.rm = TRUE, .groups = "keep"),
-                pctwhitealone = mean(pctwhitealone, na.rm = TRUE, .groups = "keep")) %>%
-      mutate(as.logical(Designated)) %>% 
-      mutate(Designated = case_when(Designated == 1 ~ "Opportunity Zone",
-                                    T ~ "Other Tracts")) %>% 
-   select(-Designated) %>% 
-   unite(desstate, c(Designated, state), remove = F)
+
+new_obs <- tibble(unemprate = rep(seq(0, 1, 0.01), 6),
+                  state = c("Alabama", "North Carolina", "South Carolina",
+                            "Georgia", "Tennessee", "Mississippi"),)
     
 new_obs
 

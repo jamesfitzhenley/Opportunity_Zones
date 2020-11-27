@@ -1,0 +1,187 @@
+---
+title: "clean_data"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(readxl)
+library(shinythemes)
+library(tidycensus)
+library(rstanarm)
+census_api_key("fcc099ffb2714e2423437589e23236c5640ba53e")
+```
+
+```{r census_pull}
+census_pull <- function(state) {
+  get_acs(geography = "tract",
+          state = state,
+          variables = "B19013_001",
+          year = 2018,
+          geometry = TRUE)  
+}
+
+alcensus <- census_pull("AL")
+nccensus <- census_pull("NC")
+sccensus <- census_pull("SC")
+tncensus <- census_pull("TN")
+gacensus <- census_pull("GA")
+mscensus <- census_pull("MS")
+census1 <- bind_rows(alcensus, nccensus, sccensus,
+                    tncensus, gacensus, mscensus)
+
+# Save an object to a file
+
+saveRDS(census1, file = "C:/Users/James/Desktop/Gov50Projects/milestone_4/Gov50final_data/censuspulldata.rds")
+```
+
+```{r log_model_ouput}
+# Make a logistic model for each predictor, to be called in the output below.
+  # Make the model and the posterior_predict output, with a generic name for variable
+    
+    # Poverty model's output
+
+      set.seed(9)
+      pov_model <- ozlist %>% 
+        stan_glm(Designated ~ PovertyRate,
+                 refresh = 0,
+                 family = binomial(link = "logit"),
+                 data = .)
+    
+      pov_new_obs <- tibble(PovertyRate = rep(seq(0, 1, 0.01), 6),
+                            state = c(rep("Alabama", 101), rep("North Carolina", 101),
+                                      rep("South Carolina", 101), rep("Georgia", 101),
+                                      rep("Tennessee", 101), rep("Mississippi", 101)))
+    
+      set.seed(9)
+      pov_mod_output <- posterior_predict(pov_model, newdata = pov_new_obs) %>%
+          as_tibble() %>%
+          pivot_longer(cols =`1`:`606`,
+                       names_to = "obs",
+                       values_to = "pred_oz") %>% 
+          group_by(obs) %>% 
+          summarize(mean = mean(pred_oz),
+                    .groups = "keep") %>% 
+          mutate(as.numeric(obs)) %>% 
+          arrange(`as.numeric(obs)`) %>% 
+          bind_cols(pov_new_obs, .) %>%
+          mutate(variable = PovertyRate) %>% 
+          select(variable, state, mean)
+      
+    # Education model's output
+      
+        set.seed(9)  
+        edu_model <- ozlist %>% 
+            stan_glm(Designated ~ HSorlower,
+                     refresh = 0,
+                     family = binomial(link = "logit"),
+                     data = .)
+          
+          edu_new_obs <- tibble(HSorlower = rep(seq(0, 1, 0.01), 6),
+                                state = c(rep("Alabama", 101), rep("North Carolina", 101),
+                                          rep("South Carolina", 101), rep("Georgia", 101),
+                                          rep("Tennessee", 101), rep("Mississippi", 101)))
+          
+          set.seed(9)
+          edu_mod_output <- posterior_predict(edu_model, newdata = edu_new_obs) %>%
+              as_tibble() %>%
+              pivot_longer(cols =`1`:`606`,
+                           names_to = "obs",
+                           values_to = "pred_oz") %>% 
+              group_by(obs) %>% 
+              summarize(mean = mean(pred_oz),
+                    .groups = "keep") %>% 
+              mutate(as.numeric(obs)) %>% 
+              arrange(`as.numeric(obs)`) %>% 
+              bind_cols(edu_new_obs, .) %>%
+              mutate(variable = HSorlower) %>% 
+              select(variable, state, mean)
+
+    # Median Income model's output
+          
+        set.seed(9)
+        inc_model <- ozlist %>% 
+          stan_glm(Designated ~ medhhincome2014_tract,
+                   refresh = 0,
+                   family = binomial(link = "logit"),
+                   data = .)
+        
+        inc_new_obs <- tibble(medhhincome2014_tract = rep(seq(0, 129000, 1000), 6),
+                              state = c(rep("Alabama", 130), rep("North Carolina", 130),
+                                        rep("South Carolina", 130), rep("Georgia", 130),
+                                        rep("Tennessee", 130), rep("Mississippi", 130)))
+        
+        set.seed(9)
+        inc_mod_output <- posterior_predict(inc_model, newdata = inc_new_obs) %>%
+            as_tibble() %>%
+            pivot_longer(cols =`1`:`780`,
+                         names_to = "obs",
+                         values_to = "pred_oz") %>% 
+            group_by(obs) %>% 
+            summarize(mean = mean(pred_oz),
+                    .groups = "keep") %>% 
+            mutate(as.numeric(obs)) %>% 
+            arrange(`as.numeric(obs)`) %>% 
+            bind_cols(inc_new_obs, .) %>%
+            mutate(variable = medhhincome2014_tract) %>% 
+            select(variable, state, mean)
+    
+    # Median Income model's output
+        
+        set.seed(9)
+        white_model <- ozlist %>% 
+          stan_glm(Designated ~ pctwhitealone,
+                   refresh = 0,
+                   family = binomial(link = "logit"),
+                   data = .)
+        
+        white_new_obs <- tibble(pctwhitealone = rep(seq(0, 1, 0.01), 6),
+                              state = c(rep("Alabama", 101), rep("North Carolina", 101),
+                                        rep("South Carolina", 101), rep("Georgia", 101),
+                                        rep("Tennessee", 101), rep("Mississippi", 101)))
+    
+        set.seed(9)
+        white_mod_output <- posterior_predict(white_model, newdata = white_new_obs) %>%
+            as_tibble() %>%
+            pivot_longer(cols =`1`:`606`,
+                         names_to = "obs",
+                         values_to = "pred_oz") %>% 
+            group_by(obs) %>% 
+            summarize(mean = mean(pred_oz),
+                    .groups = "keep") %>% 
+            mutate(as.numeric(obs)) %>% 
+            arrange(`as.numeric(obs)`) %>% 
+            bind_cols(white_new_obs, .) %>%
+            mutate(variable = pctwhitealone) %>% 
+            select(variable, state, mean)
+
+    # Unemployment Rate model's output
+        
+        set.seed(9)
+        ue_model <- ozlist %>% 
+          stan_glm(Designated ~ unemprate,
+                   refresh = 0,
+                   family = binomial(link = "logit"),
+                   data = .)
+        
+        ue_new_obs <- tibble(unemprate = rep(seq(0, 1, 0.01), 6),
+                          state = c(rep("Alabama", 101), rep("North Carolina", 101),
+                                    rep("South Carolina", 101), rep("Georgia", 101),
+                                    rep("Tennessee", 101), rep("Mississippi", 101)))
+    
+        set.seed(9)    
+        ue_mod_output <- posterior_predict(ue_model, newdata = ue_new_obs) %>%
+            as_tibble() %>%
+            pivot_longer(cols =`1`:`606`,
+                         names_to = "obs",
+                         values_to = "pred_oz") %>% 
+            group_by(obs) %>% 
+            summarize(mean = mean(pred_oz),
+                    .groups = "keep") %>% 
+            mutate(as.numeric(obs)) %>% 
+            arrange(`as.numeric(obs)`) %>% 
+            bind_cols(ue_new_obs, .) %>%
+            mutate(variable = unemprate) %>% 
+            select(variable, state, mean)
+```
