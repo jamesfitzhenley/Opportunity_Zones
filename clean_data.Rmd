@@ -14,6 +14,14 @@ census_api_key("fcc099ffb2714e2423437589e23236c5640ba53e")
 ```
 
 ```{r census_pull}
+
+# There were parts of my shiny app that took a long time to run. In order to
+# save time, Tyler recommended that I run these portions in another R markdown
+# file and save their outputs. That way, it can be much faster when I run my
+# shiny app. At first, this was just to help with pulling census data like I do
+# in this r chunk. Later, I added on the posterior_predict outputs, after trying
+# to include the models themselves in the renderPlot({}) in the server.
+
 census_pull <- function(state) {
   get_acs(geography = "tract",
           state = state,
@@ -31,31 +39,113 @@ mscensus <- census_pull("MS")
 census1 <- bind_rows(alcensus, nccensus, sccensus,
                     tncensus, gacensus, mscensus)
 
-# Save an object to a file
+  # Here, I created a function to pull data from the census by state. The census
+  # data is from the 2018 American Community Survey. I included a random
+  # variable for variables, because all I need is the geometry, so that I can
+  # plot the census tract's designation as an Opportunity Zone on the map.
 
-saveRDS(census1, file = "C:/Users/James/Desktop/Gov50Projects/milestone_4/Gov50final_data/censuspulldata.rds")
+# Save that output to a file, so that I don't have to run it every time the app
+# runs.
+
+saveRDS(census1, 
+        file = "C:/Users/James/Desktop/Gov50Projects/milestone_4/
+               Gov50final_data/censuspulldata.rds")
+
+  # Now that I have saved these data to a file, I can read that file in the
+  # shiny app and use it easily.
+
+```
+
+```{r ozcensus_combined_all}
+# Make object that combines ozlist and census data for all relevant states
+  # This will be faster for the shiny app to do than running ozcensus_combine()
+  # 6 times or some modified version of it.
+
+      # For the sake of speed, I just made an object with what that function
+      # would have been. I went ahead and then summarized the data in that
+      # object, so that it is ready to be graphed immediately in this output.
+
+ozcensus_combined_all <- ozlist %>% 
+    filter(state %in% states) %>% 
+    select(state, GEOID, PovertyRate, HSorlower, medhhincome2014_tract, 
+           pctwhitealone, unemprate, Designated) %>% 
+    left_join(census, ., by = "GEOID") %>% 
+    mutate(state = case_when(str_detect(NAME, "Alabama") ~ "Alabama",
+                             str_detect(NAME, "North Carolina") ~ "North Carolina",
+                             str_detect(NAME, "South Carolina") ~ "South Carolina",
+                             str_detect(NAME, "Tennessee") ~ "Tennessee",
+                             str_detect(NAME, "Georgia") ~ "Georgia",
+                             str_detect(NAME, "Mississippi") ~ "Mississippi",
+                             TRUE ~ "delete")) %>% 
+    filter(state != "delete") %>% 
+    mutate_if(is.numeric, ~ replace(., is.na(.), 0)) %>% 
+    group_by(Designated, state) %>% 
+    dplyr::summarize(unemprate = mean(unemprate,
+                                      na.rm = TRUE,
+                                      .groups = "keep"),
+                     PovertyRate = mean(PovertyRate,
+                                        na.rm = TRUE,
+                                        .groups = "keep"),
+                     medhhincome2014_tract = mean(medhhincome2014_tract,
+                                                  na.rm = TRUE,
+                                                  .groups = "keep"),
+                     HSorlower = mean(HSorlower,
+                                      na.rm = TRUE,
+                                      .groups = "keep"),
+                     pctwhitealone = mean(pctwhitealone,
+                                          na.rm = TRUE,
+                                          .groups = "keep")) %>%
+    mutate(as.logical(Designated)) %>% 
+    mutate(Designated = case_when(Designated == 1 ~ "Opportunity Zone",
+                                  T ~ "Other Tracts")) %>% 
+    mutate(state = as.factor(state))
+
+
+    # I set join_states = states, as I only intend to use this function in one
+    # place and that will be the relevant argument. I also had to change the
+    # code from if_else() to case_when() to make sure that each row has a state
+    # and that state is written accurately.
+
 ```
 
 ```{r log_model_ouput}
-# Make a logistic model for each predictor, to be called in the output below.
-  # Make the model and the posterior_predict output, with a generic name for variable
+# Make a logistic model for each predictor; the posterior_predict output from
+# that model can be mutated to give a likelihood that a census tract is
+# designated an OZ, based on the predictor's value. This posterior_predict
+# output will be used to make a chart on the model page of the shiny app.
+  # Make the model and the posterior_predict output, with a generic name for
+  # the variable that will go on the x axis.
     
-    # Poverty model's output
+    # Make the poverty rate model's output
 
       set.seed(9)
       pov_model <- ozlist %>% 
-        stan_glm(Designated ~ PovertyRate,
+        stan_glm(Designated ~ PovertyRate + state,
                  refresh = 0,
                  family = binomial(link = "logit"),
                  data = .)
+      
+        # I used a binomial(link = "logit") family because the output of
+        # Designated is binary (yes or no).
     
-      pov_new_obs <- tibble(PovertyRate = rep(seq(0, 1, 0.01), 6),
-                            state = c(rep("Alabama", 101), rep("North Carolina", 101),
-                                      rep("South Carolina", 101), rep("Georgia", 101),
-                                      rep("Tennessee", 101), rep("Mississippi", 101)))
+      pov_new_obs <- 
+        tibble(PovertyRate = rep(seq(0, 1, 0.01), 6),
+               state = c(rep("Alabama", 101), rep("North Carolina", 101),
+                         rep("South Carolina", 101), rep("Georgia", 101),
+                         rep("Tennessee", 101), rep("Mississippi", 101)))
+      
+        # For the newdata, I made a tibble with each 0.01 interval between 0 and
+        # 1, inclusive. This will help us measure the predictions for the full
+        # range of possible poverty rates, splitting it up at pretty fine
+        # intervals. I take a similar approach for each variable with is a
+        # proportion of the population, but approach it differently for median
+        # household income. Because there are 101 values between 0 and 1 with
+        # 0.01 intervals, inclusive, I listed each state 101 times. This way,
+        # the posterior_predict can consider this whole range for each state.
     
       set.seed(9)
-      pov_mod_output <- posterior_predict(pov_model, newdata = pov_new_obs) %>%
+      pov_mod_output <- 
+        posterior_predict(pov_model, newdata = pov_new_obs) %>%
           as_tibble() %>%
           pivot_longer(cols =`1`:`606`,
                        names_to = "obs",
@@ -69,22 +159,27 @@ saveRDS(census1, file = "C:/Users/James/Desktop/Gov50Projects/milestone_4/Gov50f
           mutate(variable = PovertyRate) %>% 
           select(variable, state, mean)
       
-    # Education model's output
+    # Make the low education rate model's output
       
         set.seed(9)  
         edu_model <- ozlist %>% 
-            stan_glm(Designated ~ HSorlower,
+            stan_glm(Designated ~ HSorlower + state,
                      refresh = 0,
                      family = binomial(link = "logit"),
                      data = .)
           
-          edu_new_obs <- tibble(HSorlower = rep(seq(0, 1, 0.01), 6),
-                                state = c(rep("Alabama", 101), rep("North Carolina", 101),
-                                          rep("South Carolina", 101), rep("Georgia", 101),
-                                          rep("Tennessee", 101), rep("Mississippi", 101)))
+          edu_new_obs <- 
+            tibble(HSorlower = rep(seq(0, 1, 0.01), 6),
+                   state = c(rep("Alabama", 101),
+                             rep("North Carolina", 101),
+                             rep("South Carolina", 101),
+                             rep("Georgia", 101),
+                             rep("Tennessee", 101),
+                             rep("Mississippi", 101)))
           
           set.seed(9)
-          edu_mod_output <- posterior_predict(edu_model, newdata = edu_new_obs) %>%
+          edu_mod_output <- 
+            posterior_predict(edu_model, newdata = edu_new_obs) %>%
               as_tibble() %>%
               pivot_longer(cols =`1`:`606`,
                            names_to = "obs",
@@ -98,22 +193,36 @@ saveRDS(census1, file = "C:/Users/James/Desktop/Gov50Projects/milestone_4/Gov50f
               mutate(variable = HSorlower) %>% 
               select(variable, state, mean)
 
-    # Median Income model's output
+    # Make the median household income model's output
           
         set.seed(9)
         inc_model <- ozlist %>% 
-          stan_glm(Designated ~ medhhincome2014_tract,
+          stan_glm(Designated ~ medhhincome2014_tract + state,
                    refresh = 0,
                    family = binomial(link = "logit"),
                    data = .)
         
-        inc_new_obs <- tibble(medhhincome2014_tract = rep(seq(0, 129000, 1000), 6),
-                              state = c(rep("Alabama", 130), rep("North Carolina", 130),
-                                        rep("South Carolina", 130), rep("Georgia", 130),
-                                        rep("Tennessee", 130), rep("Mississippi", 130)))
+        inc_new_obs <- 
+          tibble(medhhincome2014_tract = rep(seq(0, 129000, 1000), 6),
+                 state = c(rep("Alabama", 130),
+                           rep("North Carolina", 130),
+                           rep("South Carolina", 130),
+                           rep("Georgia", 130),
+                           rep("Tennessee", 130),
+                           rep("Mississippi", 130)))
+        
+        # This time, I deviated from the pattern of using 0 to 1 by 0.01
+        # intervals. I saw that the maximum median household income for a tract
+        # in ozlist was a little over $129,000. So, I set this at my maximum, 0
+        # as my minimum, and 1,000 as my interval. This allows for this
+        # variable's output to include the whole range of potential values for
+        # the relevant data set with good specificity. Also, because there are
+        # now 130 values for median household income, I need to repeat each
+        # state name 130 times.
         
         set.seed(9)
-        inc_mod_output <- posterior_predict(inc_model, newdata = inc_new_obs) %>%
+        inc_mod_output <- 
+          posterior_predict(inc_model, newdata = inc_new_obs) %>%
             as_tibble() %>%
             pivot_longer(cols =`1`:`780`,
                          names_to = "obs",
@@ -127,22 +236,27 @@ saveRDS(census1, file = "C:/Users/James/Desktop/Gov50Projects/milestone_4/Gov50f
             mutate(variable = medhhincome2014_tract) %>% 
             select(variable, state, mean)
     
-    # Median Income model's output
+    # Make the white percent of population model's output
         
         set.seed(9)
         white_model <- ozlist %>% 
-          stan_glm(Designated ~ pctwhitealone,
+          stan_glm(Designated ~ pctwhitealone + state,
                    refresh = 0,
                    family = binomial(link = "logit"),
                    data = .)
         
-        white_new_obs <- tibble(pctwhitealone = rep(seq(0, 1, 0.01), 6),
-                              state = c(rep("Alabama", 101), rep("North Carolina", 101),
-                                        rep("South Carolina", 101), rep("Georgia", 101),
-                                        rep("Tennessee", 101), rep("Mississippi", 101)))
-    
+        white_new_obs <- 
+          tibble(pctwhitealone = rep(seq(0, 1, 0.01), 6),
+                 state = c(rep("Alabama", 101),
+                           rep("North Carolina", 101),
+                           rep("South Carolina", 101),
+                           rep("Georgia", 101),
+                           rep("Tennessee", 101),
+                           rep("Mississippi", 101)))
+
         set.seed(9)
-        white_mod_output <- posterior_predict(white_model, newdata = white_new_obs) %>%
+        white_mod_output <- 
+          posterior_predict(white_model, newdata = white_new_obs) %>%
             as_tibble() %>%
             pivot_longer(cols =`1`:`606`,
                          names_to = "obs",
@@ -156,22 +270,27 @@ saveRDS(census1, file = "C:/Users/James/Desktop/Gov50Projects/milestone_4/Gov50f
             mutate(variable = pctwhitealone) %>% 
             select(variable, state, mean)
 
-    # Unemployment Rate model's output
+    # Make the unemployment rate model's output
         
         set.seed(9)
         ue_model <- ozlist %>% 
-          stan_glm(Designated ~ unemprate,
+          stan_glm(Designated ~ unemprate + state,
                    refresh = 0,
                    family = binomial(link = "logit"),
                    data = .)
         
-        ue_new_obs <- tibble(unemprate = rep(seq(0, 1, 0.01), 6),
-                          state = c(rep("Alabama", 101), rep("North Carolina", 101),
-                                    rep("South Carolina", 101), rep("Georgia", 101),
-                                    rep("Tennessee", 101), rep("Mississippi", 101)))
-    
+        ue_new_obs <-
+          tibble(unemprate = rep(seq(0, 1, 0.01), 6),
+                 state = c(rep("Alabama", 101),
+                           rep("North Carolina", 101),
+                           rep("South Carolina", 101),
+                           rep("Georgia", 101),
+                           rep("Tennessee", 101),
+                           rep("Mississippi", 101)))
+
         set.seed(9)    
-        ue_mod_output <- posterior_predict(ue_model, newdata = ue_new_obs) %>%
+        ue_mod_output <- 
+          posterior_predict(ue_model, newdata = ue_new_obs) %>%
             as_tibble() %>%
             pivot_longer(cols =`1`:`606`,
                          names_to = "obs",
