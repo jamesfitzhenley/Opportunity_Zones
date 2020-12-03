@@ -41,8 +41,7 @@ desc_vars <- c("Poverty Rate", "Education", "Household Income",
 # Read the RDS of census data that was created in clean_data.Rmd
 
 census <- readRDS(
-  file = 
-"C:/Users/James/Desktop/Gov50Projects/milestone_4/Gov50final_data/censuspulldata.rds")
+  file = "Gov50final_data/censuspulldata.rds")
 
 
 # Make function that combines ozlist and census data for a specific state
@@ -92,6 +91,44 @@ var_names <- tibble(
         # This will help me make graphs with an interactive aspect. This way, I
         # can change the labeling of a chart and the model that it graphs while
         # using a clean, interpretable set of names for variables.
+
+# Load in all_objects.RDS
+
+all_objects <- readRDS("all_objects.Rds")
+    
+    # This will bring in everything that I created in clean_data.Rmd. By reading
+    # this object into this .Rmd, I can be sure that the app will run whenever
+    # someone clicks on the link, regardless of whether or not they can access
+    # and run clean_data.
+
+# Create objects for each of the models/tibbles in all_objects
+
+  # Objects for each of the models
+
+pov_model <- all_objects$pov_mod
+inc_model <- all_objects$inc_mod
+white_model <- all_objects$white_mod
+ue_model <- all_objects$ue_mod
+edu_model <- all_objects$edu_mod
+
+
+  # Objects for each of the posterior_predict outputs
+
+pov_mod_output <- all_objects$pov_output
+inc_mod_output <- all_objects$inc_output
+white_mod_output <- all_objects$white_output
+ue_mod_output <- all_objects$ue_output
+edu_mod_output <- all_objects$edu_output
+
+  # Object for ozcensus_combined_all
+
+ozcensus_combined_all <- all_objects$ozcensus_combined_all
+
+      # I chose to name the objects the same as the names in the var_names
+      # tibble or elsewhere in final_project.R to limit the number of changes I
+      # need to make to my code. This is also easier, because I have now made it
+      # so that I can use the same name to refer to the same object in
+      # final_project.R and clean_data.R
 
 ###############################################################################
 ###############################################################################
@@ -183,7 +220,8 @@ ui <- fluidPage(theme = shinytheme("flatly"), navbarPage(
            )
   ),
   
-  # Make a tab for the demographic and economic differences between OZs and non-OZs
+  # Make a tab for the demographic and economic differences between OZs and
+  # non-OZs
 
   tabPanel("Descriptive",
            
@@ -194,11 +232,13 @@ ui <- fluidPage(theme = shinytheme("flatly"), navbarPage(
              p("The figures below show demographic differences between OZs and
         other census tracts."),
              
-          # Make a dropdown to choose a demographic variable to view the differences
+          # Make a dropdown to choose a demographic variable to view the
+          # differences
           
              selectInput(
                inputId = "desc_var_choice",
-               label = "Select a demographic variable across which to view differences.",
+               label = "Select a demographic variable 
+                        across which to view differences.",
                choices = desc_vars
              ),
              plotOutput("desc_plot")
@@ -217,7 +257,8 @@ ui <- fluidPage(theme = shinytheme("flatly"), navbarPage(
        p("The figures below show a logistic regression of a census tract's
          Opportunity Zone designation with various predictors."),
        
-       # Make a dropdown to choose a demographic variable to view the differences
+       # Make a dropdown to choose a demographic variable to view the
+       # differences
        
        selectInput(
          inputId = "mod_var_choice",
@@ -265,7 +306,8 @@ server <- function(input, output, session) {
       theme(legend.position = "none") +
       labs(title = paste0("Opportunity Zones in", input$state_choice),
            caption = "Source: Urban Institue, 2018 American Community Survey",
-           subtitle = "Light blue census tracts are designated Opportunity Zones")
+           subtitle = "Light blue census tracts are 
+                designated Opportunity Zones")
   })
   
   # This line makes our dataset reactive, so that it updates based on user
@@ -293,21 +335,24 @@ server <- function(input, output, session) {
     # Use the output of ozcensus_combine() for each state, so that the
     # comparison is between OZ and non-OZ tracts, not just between OZ and
     # eligible, non-OZ tracts
-      # For the sake of ease, I initially tried to create another function called
-      # ozcensus_combine_all(); this way, I could avoid making an object for each
-      # state, then binding those 6 separate tibbles.
+      # For the sake of ease, I initially tried to create another function
+      # called ozcensus_combine_all(); this way, I could avoid making an object
+      # for each state, then binding those 6 separate tibbles.
     
       # For the sake of speed, I just made an object with what that function
       # would have been. I went ahead and then summarized the data in that
       # object, so that it is ready to be graphed immediately in this output.
     
-      ggplot(ozcensus_combined_all, aes(x = Designated, y = get(data_desc_var))) +
+      ggplot(all_objects$ozcensus_combined_all, 
+             aes(x = Designated, y = get(data_desc_var))) +
       geom_col() +
       facet_wrap(~ state) +
-      labs(title = paste0(input$desc_var_choice, " in Southern Qualified Opportunity Zones"),
+      labs(title = paste0(input$desc_var_choice,
+                          " in Southern Qualified Opportunity Zones"),
            subtitle = desc_explain,
            y = input$desc_var_choice,
-           caption = "Source: Urban Institute, 2014 and 2018 American Community Surveys") +
+           caption = "Source: Urban Institute, 
+                2014 and 2018 American Community Surveys") +
       theme_economist()
     
         # I used the summarize() function to find the mean value for each
@@ -338,7 +383,7 @@ server <- function(input, output, session) {
     
       get(mod_predict) %>% 
       ggplot(aes(x = variable, y = mean)) +
-      geom_line(aes(color = state)) +
+      geom_line() +
       labs(title = paste0("Likelihood of OZ Designation Based on ",
                           input$mod_var_choice),
           subtitle = mod_explain,

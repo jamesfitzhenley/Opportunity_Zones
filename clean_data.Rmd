@@ -48,8 +48,7 @@ census1 <- bind_rows(alcensus, nccensus, sccensus,
 # runs.
 
 saveRDS(census1, 
-        file = "C:/Users/James/Desktop/Gov50Projects/milestone_4/
-               Gov50final_data/censuspulldata.rds")
+        file = "Gov50final_data/censuspulldata.rds")
 
   # Now that I have saved these data to a file, I can read that file in the
   # shiny app and use it easily.
@@ -65,6 +64,7 @@ saveRDS(census1,
       # would have been. I went ahead and then summarized the data in that
       # object, so that it is ready to be graphed immediately in this output.
 
+# Save this as an .Rds or put it in final_project.R
 ozcensus_combined_all <- ozlist %>% 
     filter(state %in% states) %>% 
     select(state, GEOID, PovertyRate, HSorlower, medhhincome2014_tract, 
@@ -304,3 +304,20 @@ ozcensus_combined_all <- ozlist %>%
             mutate(variable = unemprate) %>% 
             select(variable, state, mean)
 ```
+
+```{r create .Rds for all objects}
+# Now that I have created all the models that I need, I can write an .Rds with
+# all of them, then read that .Rds at the start of final_project.R. I need to do
+# this, since I realized that the app can only load locally after I run
+# clean_data.Rmd, which means the website link doesn't work on its own.
+
+all_objects <- list(pov_mod = pov_model, pov_output = pov_mod_output,
+                    inc_mod = inc_model, inc_ouptut = inc_mod_output,
+                    white_mod = white_model, white_output = white_mod_output,
+                    ue_mod =  ue_model, ue_output = ue_mod_output,
+                    edu_mod = edu_model, edu_output = edu_mod_output,
+                    ozcensus_combined_all = ozcensus_combined_all)
+
+saveRDS(all_objects, "all_objects.rds")
+```
+
