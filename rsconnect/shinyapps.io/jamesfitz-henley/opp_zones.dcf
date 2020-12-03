@@ -1,0 +1,12 @@
+name: opp_zones
+title: opp_zones
+username:
+account: jamesfitz-henley
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 3322288
+bundleId: 3921661
+url: https://jamesfitz-henley.shinyapps.io/opp_zones/
+when: 1606718682.5471
+asMultiple: FALSE
+asStatic: FALSE

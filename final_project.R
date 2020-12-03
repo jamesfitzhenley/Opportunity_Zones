@@ -306,8 +306,8 @@ server <- function(input, output, session) {
       theme(legend.position = "none") +
       labs(title = paste0("Opportunity Zones in", input$state_choice),
            caption = "Source: Urban Institue, 2018 American Community Survey",
-           subtitle = "Light blue census tracts are 
-                designated Opportunity Zones")
+           subtitle = 
+             "Light blue census tracts are designated Opportunity Zones")
   })
   
   # This line makes our dataset reactive, so that it updates based on user
@@ -351,8 +351,8 @@ server <- function(input, output, session) {
                           " in Southern Qualified Opportunity Zones"),
            subtitle = desc_explain,
            y = input$desc_var_choice,
-           caption = "Source: Urban Institute, 
-                2014 and 2018 American Community Surveys") +
+           caption = 
+          "Source: Urban Institute, 2014 and 2018 American Community Surveys") +
       theme_economist()
     
         # I used the summarize() function to find the mean value for each

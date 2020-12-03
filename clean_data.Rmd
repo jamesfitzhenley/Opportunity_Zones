@@ -120,13 +120,19 @@ ozcensus_combined_all <- ozlist %>%
 
       set.seed(9)
       pov_model <- ozlist %>% 
-        stan_glm(Designated ~ PovertyRate + state,
+        stan_glm(Designated ~ PovertyRate,
                  refresh = 0,
                  family = binomial(link = "logit"),
                  data = .)
       
         # I used a binomial(link = "logit") family because the output of
         # Designated is binary (yes or no).
+        # At first, I included state as another predictor. I saw that the trends
+        # were largely the same across states. Given that, it would only be
+        # confusing to show the trend for each state on the same graph. However,
+        # if I include state as a predictor and do not plot each state's trend
+        # separately, it is harder to see the trends for the whole set of
+        # states. That's why I just removed state as a predictor in the end.
     
       pov_new_obs <- 
         tibble(PovertyRate = rep(seq(0, 1, 0.01), 6),
@@ -163,7 +169,7 @@ ozcensus_combined_all <- ozlist %>%
       
         set.seed(9)  
         edu_model <- ozlist %>% 
-            stan_glm(Designated ~ HSorlower + state,
+            stan_glm(Designated ~ HSorlower,
                      refresh = 0,
                      family = binomial(link = "logit"),
                      data = .)
@@ -197,7 +203,7 @@ ozcensus_combined_all <- ozlist %>%
           
         set.seed(9)
         inc_model <- ozlist %>% 
-          stan_glm(Designated ~ medhhincome2014_tract + state,
+          stan_glm(Designated ~ medhhincome2014_tract,
                    refresh = 0,
                    family = binomial(link = "logit"),
                    data = .)
@@ -240,7 +246,7 @@ ozcensus_combined_all <- ozlist %>%
         
         set.seed(9)
         white_model <- ozlist %>% 
-          stan_glm(Designated ~ pctwhitealone + state,
+          stan_glm(Designated ~ pctwhitealone,
                    refresh = 0,
                    family = binomial(link = "logit"),
                    data = .)
@@ -274,7 +280,7 @@ ozcensus_combined_all <- ozlist %>%
         
         set.seed(9)
         ue_model <- ozlist %>% 
-          stan_glm(Designated ~ unemprate + state,
+          stan_glm(Designated ~ unemprate,
                    refresh = 0,
                    family = binomial(link = "logit"),
                    data = .)
@@ -311,13 +317,13 @@ ozcensus_combined_all <- ozlist %>%
 # this, since I realized that the app can only load locally after I run
 # clean_data.Rmd, which means the website link doesn't work on its own.
 
-all_objects <- list(pov_mod = pov_model, pov_output = pov_mod_output,
-                    inc_mod = inc_model, inc_ouptut = inc_mod_output,
+all_objects_for_rds <- list(pov_mod = pov_model, pov_output = pov_mod_output,
+                    inc_mod = inc_model, inc_output = inc_mod_output,
                     white_mod = white_model, white_output = white_mod_output,
                     ue_mod =  ue_model, ue_output = ue_mod_output,
                     edu_mod = edu_model, edu_output = edu_mod_output,
                     ozcensus_combined_all = ozcensus_combined_all)
 
-saveRDS(all_objects, "all_objects.rds")
+saveRDS(all_objects_for_rds, "all_objects.rds")
 ```
 
