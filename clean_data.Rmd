@@ -19,8 +19,9 @@ census_api_key("fcc099ffb2714e2423437589e23236c5640ba53e")
 # save time, Tyler recommended that I run these portions in another R markdown
 # file and save their outputs. That way, it can be much faster when I run my
 # shiny app. At first, this was just to help with pulling census data like I do
-# in this r chunk. Later, I added on the posterior_predict outputs, after trying
-# to include the models themselves in the renderPlot({}) in the server.
+# in this r chunk. Later, I added on the posterior_predict outputs and the
+# ozcensus_combined_all object, after trying to include the models and object
+# in the renderPlot({}) in the server.
 
 census_pull <- function(state) {
   get_acs(geography = "tract",
@@ -40,9 +41,9 @@ census1 <- bind_rows(alcensus, nccensus, sccensus,
                     tncensus, gacensus, mscensus)
 
   # Here, I created a function to pull data from the census by state. The census
-  # data is from the 2018 American Community Survey. I included a random
-  # variable for variables, because all I need is the geometry, so that I can
-  # plot the census tract's designation as an Opportunity Zone on the map.
+  # data is from the 2018 American Community Survey. I chose a variable at
+  # random, because all I need is the geometry, so that I can plot the census
+  # tract's designation as an Opportunity Zone on the map.
 
 # Save that output to a file, so that I don't have to run it every time the app
 # runs.
@@ -60,12 +61,15 @@ saveRDS(census1,
   # This will be faster for the shiny app to do than running ozcensus_combine()
   # 6 times or some modified version of it.
 
-      # For the sake of speed, I just made an object with what that function
-      # would have been. I went ahead and then summarized the data in that
-      # object, so that it is ready to be graphed immediately in this output.
+      # For the sake of speed, I made a function to create the means and
+      # standard deviations separately and combine them, so that the object made
+      # by the function is ready to be graphed immediately in this output.
 
-# Save this as an .Rds or put it in final_project.R
-ozcensus_combined_all <- ozlist %>% 
+# Save this in the .Rds which will hold all objects from this .Rmd to be read
+# into final_project.R
+
+combine_all <- function(data = ozlist) {
+  A <- data %>% 
     filter(state %in% states) %>% 
     select(state, GEOID, PovertyRate, HSorlower, medhhincome2014_tract, 
            pctwhitealone, unemprate, Designated) %>% 
@@ -78,33 +82,50 @@ ozcensus_combined_all <- ozlist %>%
                              str_detect(NAME, "Mississippi") ~ "Mississippi",
                              TRUE ~ "delete")) %>% 
     filter(state != "delete") %>% 
+    filter(!is.na(Designated)) %>% 
     mutate_if(is.numeric, ~ replace(., is.na(.), 0)) %>% 
     group_by(Designated, state) %>% 
-    dplyr::summarize(unemprate = mean(unemprate,
-                                      na.rm = TRUE,
-                                      .groups = "keep"),
-                     PovertyRate = mean(PovertyRate,
-                                        na.rm = TRUE,
-                                        .groups = "keep"),
-                     medhhincome2014_tract = mean(medhhincome2014_tract,
-                                                  na.rm = TRUE,
-                                                  .groups = "keep"),
-                     HSorlower = mean(HSorlower,
-                                      na.rm = TRUE,
-                                      .groups = "keep"),
-                     pctwhitealone = mean(pctwhitealone,
-                                          na.rm = TRUE,
-                                          .groups = "keep")) %>%
-    mutate(as.logical(Designated)) %>% 
+    summarize(unemprate = mean(unemprate,
+                                na.rm = TRUE,
+                                .groups = "keep"),
+               PovertyRate = mean(PovertyRate,
+                                  na.rm = TRUE,
+                                  .groups = "keep"),
+               medhhincome2014_tract = mean(medhhincome2014_tract,
+                                            na.rm = TRUE,
+                                            .groups = "keep"),
+               HSorlower = mean(HSorlower,
+                                na.rm = TRUE,
+                                .groups = "keep"),
+               pctwhitealone = mean(pctwhitealone,
+                                    na.rm = TRUE,
+                                    .groups = "keep"))
+  
+  B <- ozlist %>% 
+    mutate(state = as.factor(state)) %>% 
+    group_by(Designated, state) %>% 
+    summarize(sd_ue = sd(unemprate,
+                         na.rm = TRUE),
+              sd_pov = sd(PovertyRate,
+                          na.rm = TRUE),
+              sd_inc = sd(medhhincome2014_tract,
+                          na.rm = TRUE),
+              sd_edu = sd(HSorlower,
+                          na.rm = TRUE),
+              sd_white = sd(pctwhitealone,
+                            na.rm = TRUE))
+  
+  inner_join(A, B) %>% 
     mutate(Designated = case_when(Designated == 1 ~ "Opportunity Zone",
-                                  T ~ "Other Tracts")) %>% 
-    mutate(state = as.factor(state))
+                                  T ~ "Other Tracts"))
+}
 
+ozcensus_combined_all <- combine_all(ozlist)
 
-    # I set join_states = states, as I only intend to use this function in one
-    # place and that will be the relevant argument. I also had to change the
-    # code from if_else() to case_when() to make sure that each row has a state
-    # and that state is written accurately.
+    # I was having trouble making the standard deviation in the same summarize
+    # function as the means, so I just created a new tibble with the standard
+    # deviations and joined them. I had to use case_when() to make sure that
+    # each row has a state and that state is written accurately.
 
 ```
 
@@ -126,13 +147,14 @@ ozcensus_combined_all <- ozlist %>%
                  data = .)
       
         # I used a binomial(link = "logit") family because the output of
-        # Designated is binary (yes or no).
-        # At first, I included state as another predictor. I saw that the trends
-        # were largely the same across states. Given that, it would only be
-        # confusing to show the trend for each state on the same graph. However,
-        # if I include state as a predictor and do not plot each state's trend
-        # separately, it is harder to see the trends for the whole set of
-        # states. That's why I just removed state as a predictor in the end.
+        # Designated is binary (yes or no). At first, I included state as
+        # another predictor. I saw that the trends were largely the same across
+        # states. Given that, it would be confusing to show the trend for each
+        # state on the same graph. (There were 6 very colorful lines overlapping
+        # with each other.) However, if I include state as a predictor and do
+        # not plot each state's trend separately, it is harder to see the trends
+        # for the whole set of states. That's why I just removed state as a
+        # predictor in the end.
     
       pov_new_obs <- 
         tibble(PovertyRate = rep(seq(0, 1, 0.01), 6),
@@ -164,6 +186,10 @@ ozcensus_combined_all <- ozlist %>%
           bind_cols(pov_new_obs, .) %>%
           mutate(variable = PovertyRate) %>% 
           select(variable, state, mean)
+        
+        # Finally, I made a posterior_predict() output, turned it into a tibble,
+        # and made the variable names generic so that it works well with the
+        # ggplot commands in the model tab.
       
     # Make the low education rate model's output
       
@@ -313,9 +339,10 @@ ozcensus_combined_all <- ozlist %>%
 
 ```{r create .Rds for all objects}
 # Now that I have created all the models that I need, I can write an .Rds with
-# all of them, then read that .Rds at the start of final_project.R. I need to do
-# this, since I realized that the app can only load locally after I run
-# clean_data.Rmd, which means the website link doesn't work on its own.
+# all of them, then read that .Rds at the start of final_project.R. If I don't
+# do this, then I cannot publish the app successfully. That is because I would
+# have to run clean_data.Rmd in order to run final_project.R, which I can only
+# do locally. This step allows me to successfully publish my work.
 
 all_objects_for_rds <- list(pov_mod = pov_model, pov_output = pov_mod_output,
                     inc_mod = inc_model, inc_output = inc_mod_output,
@@ -324,6 +351,6 @@ all_objects_for_rds <- list(pov_mod = pov_model, pov_output = pov_mod_output,
                     edu_mod = edu_model, edu_output = edu_mod_output,
                     ozcensus_combined_all = ozcensus_combined_all)
 
-saveRDS(all_objects_for_rds, "all_objects.rds")
+saveRDS(all_objects_for_rds, "Gov50final_data/all_objects.rds")
 ```
 
